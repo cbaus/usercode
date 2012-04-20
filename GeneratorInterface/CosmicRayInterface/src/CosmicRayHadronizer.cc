@@ -58,15 +58,14 @@ extern "C"
 CosmicRayHadronizer::CosmicRayHadronizer(const ParameterSet &pset) :
   BaseHadronizer(pset),
   pset_(pset),
-  gSeed(pset.getParameter<int>("seed")),
-  gBeamMomentum(pset.getParameter<double>("beammomentum")),
-  gTargetMomentum(pset.getParameter<double>("targetmomentum")),
-  gBeamID(pset.getParameter<int>("beamid")),
-  gTargetID(pset.getParameter<int>("targetid")),
-  gHEModel(pset.getParameter<int>("model")),
-  gParamFileName(pset.getParameter<string>("paramFileName")),
-  gNEvent(0),
-  gImpactParameter(0)
+  fBeamMomentum(pset.getParameter<double>("beammomentum")),
+  fTargetMomentum(pset.getParameter<double>("targetmomentum")),
+  fBeamID(pset.getParameter<int>("beamid")),
+  fTargetID(pset.getParameter<int>("targetid")),
+  fHEModel(pset.getParameter<int>("model")),
+  fParamFileName(pset.getParameter<string>("paramFileName")),
+  fNEvent(0),
+  fImpactParameter(0)
 {
   // Default constructor
 
@@ -83,8 +82,9 @@ CosmicRayHadronizer::CosmicRayHadronizer(const ParameterSet &pset) :
 
   gFlatDistribution_.reset(new CLHEP::RandFlat(rng->getEngine(),  0., 1.));
 
-  crmc_init_f_(gSeed,gBeamMomentum,gTargetMomentum,gBeamID,
-               gTargetID,gHEModel,gParamFileName.c_str());
+  int seed = 123; //the seed can be removed altogether
+  crmc_init_f_(seed,fBeamMomentum,fTargetMomentum,fBeamID,
+               fTargetID,fHEModel,fParamFileName.c_str());
 
   //produces<HepMCProduct>();
 }
@@ -100,13 +100,13 @@ CosmicRayHadronizer::~CosmicRayHadronizer()
 //_____________________________________________________________________
 bool CosmicRayHadronizer::generatePartonsAndHadronize()
 {
- crmc_f_(gNParticles,gImpactParameter,
-         gPartID[0],gPartPx[0],gPartPy[0],gPartPz[0],
-         gPartEnergy[0],gPartMass[0]);
+ crmc_f_(fNParticles,fImpactParameter,
+         fPartID[0],fPartPx[0],fPartPy[0],fPartPz[0],
+         fPartEnergy[0],fPartMass[0]);
 
   HepMC::GenEvent* evt = new HepMC::GenEvent();
 
-  evt->set_event_number(gNEvent++);
+  evt->set_event_number(fNEvent++);
   //evt->set_signal_process_id(20); //an integer ID uniquely specifying the signal process (i.e. MSUB in Pythia)
 
   //create event structure;
@@ -114,18 +114,18 @@ bool CosmicRayHadronizer::generatePartonsAndHadronize()
   evt->add_vertex( theVertex );
 
   //number of beam particles
-  int nBeam = gTargetID + gBeamID;
-  if (gTargetID == 207) // fix for lead wrong ID
+  int nBeam = fTargetID + fBeamID;
+  if (fTargetID == 207) // fix for lead wrong ID
     ++nBeam;
-  if (gBeamID == 207)
+  if (fBeamID == 207)
     ++nBeam;
 
-  for(int i = 0; i < gNParticles; i++)
+  for(int i = 0; i < fNParticles; i++)
     {
-     if (gPartEnergy[i]*gPartEnergy[i] + 1e-9 < gPartPy[i]*gPartPy[i] + gPartPx[i]*gPartPx[i] + gPartPz[i]*gPartPz[i])
-       cerr << "momentum off  Id:" << gPartID[i] << "(" << i << ") " << sqrt(fabs(gPartEnergy[i]*gPartEnergy[i] - (gPartPy[i]*gPartPy[i] + gPartPx[i]*gPartPx[i] + gPartPz[i]*gPartPz[i]))) << endl;
+     if (fPartEnergy[i]*fPartEnergy[i] + 1e-9 < fPartPy[i]*fPartPy[i] + fPartPx[i]*fPartPx[i] + fPartPz[i]*fPartPz[i])
+       cerr << "momentum off  Id:" << fPartID[i] << "(" << i << ") " << sqrt(fabs(fPartEnergy[i]*fPartEnergy[i] - (fPartPy[i]*fPartPy[i] + fPartPx[i]*fPartPx[i] + fPartPz[i]*fPartPz[i]))) << endl;
        //status 1 means final particle
-      theVertex->add_particle_out( new HepMC::GenParticle( HepMC::FourVector(gPartPx[i], gPartPy[i], gPartPz[i], gPartEnergy[i]), gPartID[i], (i < nBeam)?4:1)); //beam particles status = 4, final status =1;
+      theVertex->add_particle_out( new HepMC::GenParticle( HepMC::FourVector(fPartPx[i], fPartPy[i], fPartPz[i], fPartEnergy[i]), fPartID[i], (i < nBeam)?4:1)); //beam particles status = 4, final status =1;
     }
 
   if (nBeam > 2)

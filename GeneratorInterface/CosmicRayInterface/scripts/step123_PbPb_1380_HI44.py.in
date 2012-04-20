@@ -42,7 +42,7 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    version = cms.untracked.string('$Revision: 1.341 $'),
+    version = cms.untracked.string('$Revision: 1.1 $'),
     annotation = cms.untracked.string('Configuration/Generator/python/SingleElectronPt10_cfi.py nevts:10'),
     name = cms.untracked.string('PyReleaseValidation')
 )
@@ -109,7 +109,6 @@ for path in process.paths:
 def customise(process):
 
     process.generator = cms.EDFilter("CosmicRayGeneratorFilter",
-                                     seed = cms.int32(5),
                                      beammomentum = cms.double(1380),
                                      targetmomentum = cms.double(-1380),
                                      beamid = cms.int32(207),

@@ -35,7 +35,7 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    version = cms.untracked.string('$Revision: 1.284.2.2 $'),
+    version = cms.untracked.string('$Revision: 1.1 $'),
     annotation = cms.untracked.string('Configuration/GenProduction/python/MinBias_TuneD6T_7TeV_pythia6_cff.py nevts:1'),
     name = cms.untracked.string('PyReleaseValidation')
 )
@@ -75,7 +75,6 @@ process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary
 def customise(process):
 
     process.generator = cms.EDFilter("CosmicRayGeneratorFilter",
-                                     seed = cms.int32(1),
                                      beammomentum = cms.double(1380),
                                      targetmomentum = cms.double(-1380),
                                      beamid = cms.int32(1),

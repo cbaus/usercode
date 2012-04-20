@@ -131,23 +131,22 @@ namespace gen
 
   private:
     edm::ParameterSet pset_;
-    int     gSeed;
-    double  gBeamMomentum;
-    double  gTargetMomentum;
-    int     gBeamID;
-    int     gTargetID;
-    int     gHEModel;
-    std::string gParamFileName;
-    int     gNEvent;
+    double  fBeamMomentum;
+    double  fTargetMomentum;
+    int     fBeamID;
+    int     fTargetID;
+    int     fHEModel;
+    std::string fParamFileName;
+    int     fNEvent;
 
-    int     gNParticles;
-    double  gImpactParameter;
-    int     gPartID[99990];
-    double  gPartPx[99990];
-    double  gPartPy[99990];
-    double  gPartPz[99990];
-    double  gPartEnergy[99990];
-    double  gPartMass[99990];
+    int     fNParticles;
+    double  fImpactParameter;
+    int     fPartID[99990];
+    double  fPartPx[99990];
+    double  fPartPy[99990];
+    double  fPartPz[99990];
+    double  fPartEnergy[99990];
+    double  fPartMass[99990];
   };
 
 } /*end namespace*/
