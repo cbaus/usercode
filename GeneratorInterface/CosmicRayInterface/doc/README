@@ -7,7 +7,6 @@ ___________________________________________________
 To use this generator add this to the python config file:
 
     process.generator = cms.EDFilter("CosmicRayGeneratorFilter",
-                                     seed = cms.int32(1),
                                      beammomentum = cms.double(3500),
                                      targetmomentum = cms.double(-3500),
                                      beamid = cms.int32(1),
