@@ -107,11 +107,11 @@ bool CosmicRayHadronizer::generatePartonsAndHadronize()
   HepMC::GenEvent* evt = new HepMC::GenEvent();
 
   evt->set_event_number(fNEvent++);
-  //evt->set_signal_process_id(20); //an integer ID uniquely specifying the signal process (i.e. MSUB in Pythia)
+  evt->set_signal_process_id(cevt_.typevt); //an integer ID uniquely specifying the signal process (i.e. MSUB in Pythia)
 
   //create event structure;
   HepMC::GenVertex* theVertex = new HepMC::GenVertex();
-  evt->add_vertex( theVertex );
+  evt->add_vertex(theVertex);
 
   //number of beam particles
   int nBeam = fTargetID + fBeamID;
