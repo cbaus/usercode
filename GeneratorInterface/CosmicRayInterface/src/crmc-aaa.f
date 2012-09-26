@@ -124,11 +124,11 @@ c     define vec to boost from cm. to cms frame
 c      write(*,*)nevhep,nhep,boostvec3,boostvec4,ycm2det
       do i=1,nhep
 c     boost output to cms frame
-         call utlob2(-1,boostvec1,boostvec2,boostvec3
-     +        ,boostvec4,boostvec5
-     +        ,vhep(1,i),vhep(2,i),vhep(3,i),vhep(4,i),-99)
-         call utlob5dbl(-ycm2det
-     +        ,phep(1,i), phep(2,i), phep(3,i), phep(4,i), phep(5,i))
+c         call utlob2(-1,boostvec1,boostvec2,boostvec3
+c     +        ,boostvec4,boostvec5
+c     +        ,vhep(1,i),vhep(2,i),vhep(3,i),vhep(4,i),-99)
+c         call utlob5dbl(-ycm2det
+c     +        ,phep(1,i), phep(2,i), phep(3,i), phep(4,i), phep(5,i))
          outpart(i)=idhep(i)
          outpx(i)=phep(1,i)
          outpy(i)=phep(2,i)
