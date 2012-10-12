@@ -10,12 +10,14 @@
  <Rotation name="015D" thetaX="150*deg" phiX="-180*deg" thetaY="90*deg" phiY="-90*deg" thetaZ="60*deg" phiZ="-180*deg" /> 
  <Rotation name="015D" thetaX="90*deg" phiX="60*deg" thetaY="90*deg" phiY="150*deg" thetaZ="0*deg" phiZ="0*deg" /> 
 -->
-<!--  <Rotation name="CASTFarTilt" thetaX="90*deg" phiX="180*deg" thetaY="90.4*deg" phiY="-90*deg" thetaZ="-0.4*deg" phiZ="90*deg" /> -->
-<!--  <Rotation name="CASTNearTilt" thetaX="90*deg" phiX="180*deg" thetaY="90.08*deg" phiY="-90*deg" thetaZ="-0.08*deg" phiZ="90*deg" /> -->
+
+<!--  <Rotation name="CASTFarTilt"  thetaX="100*deg" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg" phiZ="0*deg" /> -->
 
 
- <Rotation name="CASTFarTilt" thetaX="90*deg" phiX="180*deg" thetaY="90.4*deg" phiY="-90*deg" thetaZ="-0.4*deg" phiZ="90*deg" />
- <Rotation name="CASTNearTilt" thetaX="90*deg" phiX="180*deg" thetaY="90.08*deg" phiY="-90*deg" thetaZ="-0.08*deg" phiZ="90*deg" />
+<!--  <Constant name="castTilt" value="0.10856257*deg" /> -->
+ <Constant name="castTilt" value="0*deg" />
+ <Rotation name="CASTFarTilt"  thetaX="90*deg+[castTilt]" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg+[castTilt]" phiZ="90*deg" />
+ <Rotation name="CASTNearTilt" thetaX="90*deg" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg" phiZ="0*deg" />
 
  <Rotation name="180D" thetaX="90*deg" phiX="180*deg" thetaY="90*deg" phiY="90*deg" thetaZ="180*deg" phiZ="0*deg" />
  <Rotation name="RM1306" thetaX="90*deg" phiX="120*deg" thetaY="90*deg" phiY="-150*deg" thetaZ="0*deg" phiZ="0*deg" />

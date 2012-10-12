@@ -5,23 +5,25 @@
 <!--  -->
 <!-- main CASTOR volume  -->
 <!--  -->
- <Polyhedra name="CASTNear" numSide="8" startPhi="-90.0*deg" deltaPhi="180.0*deg" >
+ <Constant name="castLength" value="1583.3*mm" />
+
+ <Polyhedra name="CASTFar" numSide="8" startPhi="-90.0*deg" deltaPhi="180.0*deg" >
   <ZSection rMin="39.00*mm"   rMax="40.00*mm"    z="0.0*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="263.2*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="1320.1*mm" />
-  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="1583.3*mm" />
+  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="[castLength]" />
  </Polyhedra>
- <Polyhedra name="CASTFar" numSide="8" startPhi="90.0*deg" deltaPhi="180.0*deg" >
+ <Polyhedra name="CASTNear" numSide="8" startPhi="90.0*deg" deltaPhi="180.0*deg" >
   <ZSection rMin="39.00*mm"   rMax="40.00*mm"    z="0.0*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="263.2*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="1320.1*mm" />
-  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="1583.3*mm" />
+  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="[castLength]" />
  </Polyhedra>
  <Polyhedra name="CAST" numSide="8" startPhi="0.0*deg" deltaPhi="180.0*deg" >
   <ZSection rMin="39.00*mm"   rMax="40.00*mm"    z="0.0*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="263.2*mm" />
   <ZSection rMin="39.00*mm"   rMax="303.20*mm"   z="1320.1*mm" />
-  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="1583.3*mm" />
+  <ZSection rMin="303.20*mm"  rMax="303.20*mm"   z="[castLength]" />
  </Polyhedra>
 <!--  --> 
 <!--  --> 
@@ -432,28 +434,29 @@
    <rParent name="forward:CastorB"/>
    <rChild name="castor:CASTFar"/>
   <rRotation name="rotations:CASTFarTilt"/>
-  <Translation x="-0.5*m" y="2.9*mm" z="0.0*mm" />
 <!--  <Translation x="0.0*cm" y="0.0*cm" z="0.0*mm" /> -->
+  <Translation x="8.3*mm" y="2.9*mm" z="0.0*mm" />
+<!--  <Translation x="0.0*cm - [castLength]*sin(10*deg)" y="0.0*cm" z="0.0*mm + [castLength]*(1-cos(10*deg))" /> -->
  </PosPart>
  <PosPart copyNumber="1">
    <rParent name="forward:CastorB"/>
    <rChild name="castor:CASTNear"/>
   <rRotation name="rotations:CASTNearTilt"/>
-  <Translation x="-1*m" y="2.3*mm" z="0.0*mm" />
+  <Translation x="-1.5*mm" y="2.3*mm" z="0.0*mm" />
 <!--  <Translation x="0.0*cm" y="0.0*cm" z="0.0*mm" /> -->
  </PosPart>
 
  <PosPart copyNumber="2">
    <rParent name="castor:CASTNear"/>
    <rChild name="castor:CAST"/>
-  <rRotation name="rotations:R270"/>
+  <rRotation name="rotations:R090"/>
   <Translation x="0.0*cm" y="0.0*cm" z="-0.1*mm" />
  </PosPart>
 
 <PosPart copyNumber="3">
    <rParent name="castor:CASTFar"/>
    <rChild name="castor:CAST"/>
-  <rRotation name="rotations:R090"/>
+  <rRotation name="rotations:R270"/>
   <Translation x="0.0*cm" y="0.0*cm" z="-0.1*mm" />
  </PosPart>
 
