@@ -20,3 +20,4 @@ sed -i '588,627 s%^%c%' src/crmc-aaa.f #comment out random generator
 sed -i '4943,4943 s%^%c%' src/epos-bas.f #comment out output seed if(nrevt.eq.0)
 sed -i 's%nmxhep=9990%nmxhep=99900%g' src/crmc-aaa.f src/epos.inc #increase number of allowed particles
 sed -i 's%hepevt%hepcom%g' src/epos.inc #this is a fix for a crash
+echo " !!!disable boost!!! ycm2det=0"
