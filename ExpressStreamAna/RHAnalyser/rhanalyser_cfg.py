@@ -31,7 +31,7 @@ process.GlobalTag.globaltag = 'GR_E_V33A::All' #'START53_V11::All' #'GR_R_44_V10
 # START53_V11::All -> Colin's pPb EPOS
 
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 #process.source = cms.Source("PoolSource",
 #    fileNames = cms.untracked.vstring(
@@ -45,7 +45,7 @@ process.source = cms.Source ("PoolSource",#,duplicateCheckMode = cms.untracked.s
 fileNames = cms.untracked.vstring(
 #'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/209/948/00000/20032E91-D25C-E211-AC52-5404A63886CF.root' #LS13
 #'root://eoscms//eos/cms/store/caf/user/vzhukova/EPOS_RECO/epos_reco_fix_1817_1_53Q.root'
-'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/210/353/00000/3048394B-4F61-E211-89FB-001D09F2525D.root'
+'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/210/355/00000/58A4172C-5261-E211-AF44-002481E0D524.root'
 ),
 #store/hidata/HIRun2013A/PAMinBiasUPC/RAW/v1/000/209/948/2C18FB73-FC5C-E211-95E9-001D09F2305C.root :: LS1-10
 );

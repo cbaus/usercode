@@ -40,11 +40,19 @@ void RHTree::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
+
+      //************CASTOR************
       double e_mod[14];
       for(int i=0; i<nbCasRecHits; i++)
         {
-          std::cout << i << std::endl; 
-          h_Cas_energy_module->Fill(casRecHitIdepth[i], casRecHitEnergy[i]);
+          h_CAS_energy_module->Fill(casRecHitIdepth[i], casRecHitEnergy[i]);
+        }
+
+      //************ZDC*************
+      for(int i=0; i<10; i++)
+        {
+          std::cout << i << " " << zdcDigiIchannel[0] << " " << zdcDigiEnergyFC[zdcDigiIchannel[0]][i] << std::endl; 
+          h_ZDC_pulse->Fill(zdcDigiIchannel[0], zdcDigiEnergyFC[zdcDigiIchannel[0]][i]);
         }
    }
 }

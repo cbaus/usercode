@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Igor Katkov,32 4-A19,+41227676358,
 //         Created:  Wed Jan 16 14:14:19 CET 2013
-// $Id$
+// $Id: RHAnalyser.cc,v 1.1 2013/01/18 14:32:26 cbaus Exp $
 //
 //
 
@@ -79,10 +79,14 @@ Implementation:
 #include "TLorentzVector.h"
 //#include "DataFormats/Math/interface/LorentzVector.h"
 #include "TText.h"
-
+#include <vector>
+#include <sstream>
 //
 // class declaration
 //
+
+TCanvas* c = new TCanvas;
+std::vector<TH1D*> vec;
 
 class RHAnalyser : public edm::EDAnalyzer {
 public:
@@ -120,7 +124,6 @@ private:
     int    zdcRecHitSaturation[18];
 
     int nbZDCDigis;
-    int nbZDCDigiTs;
     double zdcDigiEnergyFC[18][10];
     int    zdcDigiEnergyADC[18][10];
     int    zdcDigiIside[18];
@@ -175,12 +178,12 @@ RHAnalyser::RHAnalyser(const edm::ParameterSet& iConfig) :
   rhtree_->Branch("zdcRecHitSaturation",treeVariables_.zdcRecHitSaturation,"zdcRecHitSaturation[nbZDCRecHits]/I");
 
   rhtree_->Branch("nbZDCDigis",&treeVariables_.nbZDCDigis,"nbZDCDigis/i");
-  rhtree_->Branch("nbZDCDigiTs",&treeVariables_.nbZDCDigiTs,"nbZDCDigiTs/i");
+  rhtree_->Branch("zdcDigiEnergyFC",treeVariables_.zdcDigiEnergyFC,"zdcDigiEnergyFC[nbZDCDigis][10]/D");
+  rhtree_->Branch("zdcDigiEnergyADC",treeVariables_.zdcDigiEnergyADC,"zdcDigiEnergyADC[nbZDCDigis][10]/I");
   rhtree_->Branch("zdcDigiIside",treeVariables_.zdcDigiIside,"zdcDigiIside[nbZDCDigis]/I");
   rhtree_->Branch("zdcDigiIsection",treeVariables_.zdcDigiIsection,"zdcDigiIsection[nbZDCDigis]/I");
   rhtree_->Branch("zdcDigiIchannel",treeVariables_.zdcDigiIchannel,"zdcDigiIchannel[nbZDCDigis]/I");
-  rhtree_->Branch("zdcDigiEnergyFC",treeVariables_.zdcDigiEnergyFC,"zdcDigiEnergyFC[nbZDCDigis][nbZDCDigiTs]/D");
-  rhtree_->Branch("zdcDigiEnergyADC",treeVariables_.zdcDigiEnergyADC,"zdcDigiEnergyADC[nbZDCDigis][nbZDCDigiTs]/I");
+
 
 
 }
@@ -290,23 +293,24 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       for ( ZDCDigiCollection::const_iterator j=zdc_digi->begin(); j != zdc_digi->end(); ++j ) {
         double energyZDCDigi = 0;
 	const ZDCDataFrame& digi = (const ZDCDataFrame)(*j);
+        int lastTS = 0;
 	if (nZdigi < 18) {
           treeVariables_.nbZDCDigis = nZdigi + 1;   
           treeVariables_.zdcDigiIside[nZdigi] = digi.id().zside();
           treeVariables_.zdcDigiIsection[nZdigi] = digi.id().section();
           treeVariables_.zdcDigiIchannel[nZdigi] = digi.id().channel();
           //CapIdTs0 = digi.sample(0).capid();
-          int lastTS = digi.size() <= 10 ? digi.size() : 10;
-          treeVariables_.nbZDCDigiTs = lastTS;
+          lastTS = digi.size() <= 10 ? digi.size() : 10;
           for(int ts = 0; ts < lastTS; ts++){
             double energy = 2.6*digi.sample(ts).nominal_fC();     //2.6*digi[ts].nominal_fC();
             energyZDCDigi =+ energy;
-            treeVariables_.zdcDigiEnergyFC[nZdigi][ts] = energy;
-            treeVariables_.zdcDigiEnergyADC[nZdigi][ts] = digi.sample(ts).adc();
+            (treeVariables_.zdcDigiEnergyFC)[nZdigi][ts] = energy;
+            (treeVariables_.zdcDigiEnergyADC)[nZdigi][ts] = digi.sample(ts).adc();
+            vec[nZdigi]->Fill(ts, energy);
           } //end of loop zdc digi time slices
 	}
         nZdigi++;
-        if (_ShowDebug) edm::LogVerbatim(" ZDCDigi ") << " ZDC energy (all ts FC): " << energyZDCDigi << " TS#: " << treeVariables_.nbZDCDigiTs << std::endl;
+        if (_ShowDebug) edm::LogVerbatim(" ZDCDigi ") << " ZDC energy (all ts FC): " << energyZDCDigi << " TS#: " << lastTS << std::endl;
       } // end loop zdc digis
 
     } else {
@@ -327,12 +331,29 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void 
 RHAnalyser::beginJob()
 {
+
+c->Divide(4);
+for (int i=0; i<18; i++)
+  {
+    std::ostringstream name;
+    std::ostringstream title;
+    name << "h_ZDC_pulse_" << i;
+    title << "Digi Number " << i << " ;TS;E in GeV";
+    vec.push_back(new TH1D(name.str().c_str(),title.str().c_str(),10,0,10));
+  }
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 RHAnalyser::endJob() 
 {
+  for(int i=0; i<4; i++)
+    {
+      c->cd(i+1);
+      vec[i]->Scale(10./vec[i]->GetEntries());
+      vec[i]->Draw();
+    }
+  c->SaveAs("c.root");
 }
 
 // ------------ method called when starting to processes a run  ------------
