@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Igor Katkov,32 4-A19,+41227676358,
 //         Created:  Wed Jan 16 14:14:19 CET 2013
-// $Id: RHAnalyser.cc,v 1.1 2013/01/18 14:32:26 cbaus Exp $
+// $Id: RHAnalyser.cc,v 1.2 2013/01/18 21:08:04 cbaus Exp $
 //
 //
 
@@ -79,14 +79,9 @@ Implementation:
 #include "TLorentzVector.h"
 //#include "DataFormats/Math/interface/LorentzVector.h"
 #include "TText.h"
-#include <vector>
-#include <sstream>
 //
 // class declaration
 //
-
-TCanvas* c = new TCanvas;
-std::vector<TH1D*> vec;
 
 class RHAnalyser : public edm::EDAnalyzer {
 public:
@@ -306,7 +301,6 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             energyZDCDigi =+ energy;
             (treeVariables_.zdcDigiEnergyFC)[nZdigi][ts] = energy;
             (treeVariables_.zdcDigiEnergyADC)[nZdigi][ts] = digi.sample(ts).adc();
-            vec[nZdigi]->Fill(ts, energy);
           } //end of loop zdc digi time slices
 	}
         nZdigi++;
@@ -332,28 +326,12 @@ void
 RHAnalyser::beginJob()
 {
 
-c->Divide(4);
-for (int i=0; i<18; i++)
-  {
-    std::ostringstream name;
-    std::ostringstream title;
-    name << "h_ZDC_pulse_" << i;
-    title << "Digi Number " << i << " ;TS;E in GeV";
-    vec.push_back(new TH1D(name.str().c_str(),title.str().c_str(),10,0,10));
-  }
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 RHAnalyser::endJob() 
 {
-  for(int i=0; i<4; i++)
-    {
-      c->cd(i+1);
-      vec[i]->Scale(10./vec[i]->GetEntries());
-      vec[i]->Draw();
-    }
-  c->SaveAs("c.root");
 }
 
 // ------------ method called when starting to processes a run  ------------

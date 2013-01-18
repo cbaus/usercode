@@ -16,10 +16,6 @@
 
 // Fixed size dimensions of array or collections stored in the TTree if any.
 
-TH1D* h_CAS_energy_module = new TH1D("h_Cas_energy_module","h_Cas_energy_module;module;#sumE in GeV",14,1,15);
-TH1D* h_ZDC_energy_module = new TH1D("h_ZDC_energy_module","h_Cas_energy_module;module;#SumE in GeV",14,1,15);
-TH1D* h_ZDC_pulse = new TH1D("h_ZDC_pulse","h_Cas_energy_module;TS;#SumE in GeV",10,0,10);
-
 class RHTree {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
