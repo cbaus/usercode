@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Igor Katkov,32 4-A19,+41227676358,
 //         Created:  Wed Jan 16 14:14:19 CET 2013
-// $Id: RHAnalyser.cc,v 1.2 2013/01/18 21:08:04 cbaus Exp $
+// $Id: RHAnalyser.cc,v 1.3 2013/01/18 21:34:01 cbaus Exp $
 //
 //
 
@@ -66,6 +66,14 @@ Implementation:
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 
+//trigger
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetupFwd.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerEvmReadoutRecord.h"
+// menu Lite:                       
+#include "DataFormats/L1GlobalTrigger/interface/L1GtTriggerMenuLite.h"
+
+
 // ROOT
 #include "TROOT.h"
 #include "TTree.h"
@@ -111,6 +119,10 @@ private:
     int    casRecHitIdepth[224];
     int    casRecHitSaturation[224];
 
+    float casSignalRaw[14][16][10];
+    float casSignal[14][16][10];
+    float casCapID[14][16][10];
+
     int nbZDCRecHits;
     double zdcRecHitEnergy[18];
     int    zdcRecHitIside[18];
@@ -125,10 +137,33 @@ private:
     int    zdcDigiIsection[18];
     int    zdcDigiIchannel[18];
 
-    
+    int   L1[128];
+    int   tt[64];
   };
 
   edm::Service<TFileService> fs_;
+  // trigger stuff
+  bool Trigger(const edm::Event&);
+  edm::InputTag fl1GtTmLInputTag;      // input tag for L1GtTriggerMenuLite 
+  edm::Handle<L1GtTriggerMenuLite> triggerMenuLite;
+
+  // for ADC<->fC conversion from CastorDbRecord, initialized in beginRun 
+  edm::ESHandle<CastorDbService> fConditions;
+
+  // pedestal parameters from CastorPedestalsRcd, initialized in beginRun                    
+  edm::ESHandle<CastorPedestals> fPedestals;
+
+  // pedestal width averaged over capIDs, calculated in beginRun 
+  //          aware of the difference between index[0..15][0..13]
+  //          and sector/module numeration[1..16][1..14] 
+
+  static const short unsigned int fNM = 14; // modules
+  static const short unsigned int fNS = 16; // sectors
+  static const short unsigned int fNTS = 10;
+
+
+  //  castor digi 
+  edm::Handle<CastorDigiCollection> fCastorDigis;
 
   const CaloGeometry* geo;
 
@@ -137,6 +172,9 @@ private:
   TTree* rhtree_;
 
   MonVariables treeVariables_;
+
+  int fNRun;
+  int fNEvent;
 
 
 };
@@ -153,7 +191,7 @@ private:
 // constructors and destructor
 //
 RHAnalyser::RHAnalyser(const edm::ParameterSet& iConfig) :
-  _ShowDebug ( iConfig.getUntrackedParameter<bool>("ShowDebug",true) )
+  _ShowDebug ( iConfig.getUntrackedParameter<bool>("ShowDebug",true) ) ,fNRun(0), fNEvent(0)
 {
   //now do what ever initialization is needed
 
@@ -164,6 +202,10 @@ RHAnalyser::RHAnalyser(const edm::ParameterSet& iConfig) :
   rhtree_->Branch("casRecHitIphi",treeVariables_.casRecHitIphi,"casRecHitIphi[nbCasRecHits]/I");
   rhtree_->Branch("casRecHitIdepth",treeVariables_.casRecHitIdepth,"casRecHitIdepth[nbCasRecHits]/I");
   rhtree_->Branch("casRecHitSaturation",treeVariables_.casRecHitSaturation,"casRecHitSaturation[nbCasRecHits]/I");
+
+  rhtree_->Branch("casSignalRaw",treeVariables_.casSignalRaw,"casSignalRaw[14]16][10]/F");
+  rhtree_->Branch("casSignal",treeVariables_.casSignal,"casSignal[14]16][10]/F");
+  rhtree_->Branch("casCapID",treeVariables_.casCapID,"casCapID[14]16][10]/F");
 
   rhtree_->Branch("nbZDCRecHits",&treeVariables_.nbZDCRecHits,"nbZDCRecHits/i");
   rhtree_->Branch("zdcRecHitEnergy",treeVariables_.zdcRecHitEnergy,"zdcRecHitEnergy[nbZDCRecHits]/D");
@@ -178,8 +220,6 @@ RHAnalyser::RHAnalyser(const edm::ParameterSet& iConfig) :
   rhtree_->Branch("zdcDigiIside",treeVariables_.zdcDigiIside,"zdcDigiIside[nbZDCDigis]/I");
   rhtree_->Branch("zdcDigiIsection",treeVariables_.zdcDigiIsection,"zdcDigiIsection[nbZDCDigis]/I");
   rhtree_->Branch("zdcDigiIchannel",treeVariables_.zdcDigiIchannel,"zdcDigiIchannel[nbZDCDigis]/I");
-
-
 
 }
 
@@ -199,6 +239,9 @@ RHAnalyser::~RHAnalyser()
 void
 RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  fNEvent++;
+  if (fNEvent % 1 == 0)
+    std::cout << "Event: " << fNEvent << std::endl;
   using namespace edm;
 
 
@@ -242,6 +285,59 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     } // end loop castor rechits
     if (_ShowDebug && casrechits->size() > 0) edm::LogVerbatim(" CastorRecHits ") << " Castor energy: " << energyCastor << std::endl;
   }
+
+  // *********************************** CASTOR Digis ****************************************
+    const CastorQIEShape* converter = fConditions->getCastorShape();
+    
+    // castor digis                                                                                                    
+    iEvent.getByType(fCastorDigis);
+    if(!fCastorDigis.isValid())
+      edm::LogWarning("CASTOR ") << "\t\t\t C A S T O R  has no CastorDigiCollection";
+    
+    double charge0, charge_correct;
+    short unsigned int sec, mod;
+    short unsigned int last_ts;
+    
+    for(int mm=0; mm<14; mm++)
+      for(int ss=0; ss<16; ss++)
+        for(int ttss=0; ttss<10; ttss++){
+          treeVariables_.casSignal[mm][ss][ttss]    = -1000;
+          treeVariables_.casSignalRaw[mm][ss][ttss] = -1000;
+	};                                                                               
+    for(CastorDigiCollection::const_iterator j=fCastorDigis->begin(); j!=fCastorDigis->end(); j++){
+      const CastorDataFrame digi     = (const CastorDataFrame)(*j);
+      const HcalCastorDetId CastorID = digi.id();
+      sec = CastorID.sector() - 1;
+      mod = CastorID.module() - 1;
+      
+      // converter object for ADC->fC   
+      const CastorQIECoder * coder           = fConditions->getCastorCoder(digi.id().rawId());
+      
+      // pedestal object (db pedestal values)
+      const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
+      
+      last_ts = (fNTS<digi.size() ? fNTS:digi.size());
+      //    std::cout << "Event#" << iEvent.id().event()
+      //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
+      
+      for(short unsigned int ts = 0; ts<last_ts; ts++){
+        // charge [fC] 
+        charge0       = coder->charge(*converter, digi.sample(ts).adc(), digi.sample(ts).capid());
+        // charge corrected = charge [fC] - pedestal [fC] (from DB)
+        charge_correct= charge0 - pedestals_mean->getValue(digi.sample(ts).capid());
+	
+        // fill the root tree
+        treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
+        treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
+        treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
+        //      std::cout << "\t" << charge0;      
+      };
+    }; // end castor collection loop
+
+
+  // *********************************** Trigger      ****************************************
+
+    bool trigger = Trigger(iEvent);
 
   // *********************************** ZDC RecHits ******************************************
 
@@ -336,10 +432,25 @@ RHAnalyser::endJob()
 
 // ------------ method called when starting to processes a run  ------------
 void 
-RHAnalyser::beginRun(edm::Run const&, edm::EventSetup const&)
+RHAnalyser::beginRun(edm::Run const&, const edm::EventSetup& iSetup)
 {
+  fNRun++;
+  std::cout << "Run: " << fNRun << std::endl;
+ //+++++++++++++++++++++++++ ADC<->fC converter  +++++++++++++++++++++++++++++++++++++++++//    
+  iSetup.get<CastorDbRecord>().get(fConditions);
+  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//            
+    
+  //+++++++++++++++++++++++ pedestal values   +++++++++++++++++++++++++++++++++++++++++++++//        
+  iSetup.get<CastorPedestalsRcd>().get(fPedestals);
+  if(!fPedestals.isValid())
+    edm::LogWarning("CASTOR ") << "\t\t\t C A S T O R  has no CastorPedestals";
+  if(fPedestals->isADC()){
+    edm::LogError("CASTOR ") 
+      << "\t\t\t DB pedestal values are in ADC while this analysis is supposed to work with pedestals in fC.\n";
+    exit(1);
+  }
 }
-
+  
 // ------------ method called when ending the processing of a run  ------------
 void 
 RHAnalyser::endRun(edm::Run const&, edm::EventSetup const&)
@@ -366,6 +477,29 @@ RHAnalyser::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.setUnknown();
   descriptions.addDefault(desc);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////   
+//                               T R I G G E R                                            //   
+bool RHAnalyser::Trigger(const edm::Event& iEvent){//, const edm::EventSetup&){
+  edm::Handle<L1GlobalTriggerReadoutRecord> gtReadoutRecord;
+  iEvent.getByLabel( edm::InputTag("gtDigis"), gtReadoutRecord);
+  if(!gtReadoutRecord.isValid())
+    edm::LogWarning("CASTOR ") << "\t\t\t T R I G G E R  has no L1GlobalTriggerReadoutRecord";
+  
+  //
+  // technical trigger bits (64 bits) :  typedef std::vector<bool> TechnicalTriggerWord;  
+  TechnicalTriggerWord TechTrigg     = gtReadoutRecord->technicalTriggerWord();
+  short unsigned int   TechTriggSize = (short unsigned int) TechTrigg.size();
+  for(short unsigned int i=0; i<TechTriggSize; i++) treeVariables_.tt[i] = TechTrigg[i];
+
+  //
+  // algorithm bits: 128 bits         :  typedef std::vector<bool> DecisionWord;  
+  DecisionWord         AlgoBits      = gtReadoutRecord->decisionWord();
+  short unsigned int   AlgoBitsSize  = (short unsigned int) AlgoBits.size();
+  for(short unsigned int i=0; i<AlgoBitsSize; i++) treeVariables_.L1[i] = AlgoBits[i];  
+
+  return true;
 }
 
 //define this as a plug-in

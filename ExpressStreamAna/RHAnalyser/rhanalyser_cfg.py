@@ -30,6 +30,24 @@ process.GlobalTag.globaltag = 'GR_E_V33A::All' #'START53_V11::All' #'GR_R_44_V10
 # GR_P_V41::All -> /PAPhysics/PARun2012-PromptReco-v2/RECO
 # START53_V11::All -> Colin's pPb EPOS
 
+#******trigger*******
+import EventFilter.L1GlobalTriggerRawToDigi.l1GtUnpack_cfi
+process.gtDigis = EventFilter.L1GlobalTriggerRawToDigi.l1GtUnpack_cfi.l1GtUnpack.clone()
+process.gtDigis.DaqGtInputTag = '"source","","HLT"'
+
+process.castorDigis = cms.EDProducer("CastorRawToDigi",
+                                   CastorFirstFED = cms.untracked.int32(690),
+                                   FilterDataQuality = cms.bool(True),
+                                   ExceptionEmptyData = cms.untracked.bool(True),
+#                                   InputLabel = cms.InputTag("rawDataRepacker"),
+#                                   InputLabel = cms.InputTag("rawDataRepacker"),
+                                   InputLabel = cms.InputTag("source","","HLT"),
+                                   UnpackCalib = cms.untracked.bool(False),
+                                   FEDs = cms.untracked.vint32(690,691,692),
+                                   lastSample = cms.int32(9),
+                                   firstSample = cms.int32(0)
+                                     )
+
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
@@ -45,7 +63,8 @@ process.source = cms.Source ("PoolSource",#,duplicateCheckMode = cms.untracked.s
 fileNames = cms.untracked.vstring(
 #'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/209/948/00000/20032E91-D25C-E211-AC52-5404A63886CF.root' #LS13
 #'root://eoscms//eos/cms/store/caf/user/vzhukova/EPOS_RECO/epos_reco_fix_1817_1_53Q.root'
-'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/210/355/00000/58A4172C-5261-E211-AF44-002481E0D524.root'
+#'root://eoscms//eos/cms/store/express/HIRun2013/ExpressPhysics/FEVT/Express-v1/000/210/355/00000/58A4172C-5261-E211-AF44-002481E0D524.root'
+'root://eoscms//eos/cms/store/hidata/HIRun2013A/MinimumBias/RAW/v1/000/210/416/DABB728F-F461-E211-A9CD-5404A6388697.root' #ekatarina said this one for muon
 ),
 #store/hidata/HIRun2013A/PAMinBiasUPC/RAW/v1/000/209/948/2C18FB73-FC5C-E211-95E9-001D09F2305C.root :: LS1-10
 );
