@@ -33,15 +33,16 @@ process.GlobalTag.globaltag = 'GR_E_V33A::All' #'START53_V11::All' #'GR_R_44_V10
 #******trigger*******
 import EventFilter.L1GlobalTriggerRawToDigi.l1GtUnpack_cfi
 process.gtDigis = EventFilter.L1GlobalTriggerRawToDigi.l1GtUnpack_cfi.l1GtUnpack.clone()
-process.gtDigis.DaqGtInputTag = '"source","","HLT"'
+process.gtDigis.DaqGtInputTag = 'rawDataCollector'
 
+process.load("EventFilter.CastorRawToDigi.CastorRawToDigi_cfi")
 process.castorDigis = cms.EDProducer("CastorRawToDigi",
                                    CastorFirstFED = cms.untracked.int32(690),
                                    FilterDataQuality = cms.bool(True),
                                    ExceptionEmptyData = cms.untracked.bool(True),
 #                                   InputLabel = cms.InputTag("rawDataRepacker"),
 #                                   InputLabel = cms.InputTag("rawDataRepacker"),
-                                   InputLabel = cms.InputTag("source","","HLT"),
+                                   InputLabel = cms.InputTag("rawDataCollector"),
                                    UnpackCalib = cms.untracked.bool(False),
                                    FEDs = cms.untracked.vint32(690,691,692),
                                    lastSample = cms.int32(9),
@@ -86,4 +87,4 @@ process.demo = cms.EDAnalyzer('RHAnalyser',
 )
 
 #process.p = cms.Path(process.hltMinBias*process.demo)
-process.p = cms.Path(process.demo)
+process.p = cms.Path(process.gtDigis*process.demo)

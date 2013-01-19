@@ -162,9 +162,6 @@ private:
   static const short unsigned int fNTS = 10;
 
 
-  //  castor digi 
-  edm::Handle<CastorDigiCollection> fCastorDigis;
-
   const CaloGeometry* geo;
 
   bool _ShowDebug;
@@ -289,50 +286,59 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // *********************************** CASTOR Digis ****************************************
     const CastorQIEShape* converter = fConditions->getCastorShape();
     
-    // castor digis                                                                                                    
-    iEvent.getByType(fCastorDigis);
-    if(!fCastorDigis.isValid())
-      edm::LogWarning("CASTOR ") << "\t\t\t C A S T O R  has no CastorDigiCollection";
+    // castor digis
+
+    edm::Handle<CastorDigiCollection> cas_digi_h;
+    try{ iEvent.getByType(cas_digi_h); }
+    catch(...) { edm::LogWarning("CAS ") << " Cannot get Castor Digi " << std::endl; }
     
-    double charge0, charge_correct;
-    short unsigned int sec, mod;
-    short unsigned int last_ts;
+    const CastorDigiCollection *cas_digi = cas_digi_h.failedToGet()? 0 : &*cas_digi_h;
+
+    if(cas_digi && cas_digi_h.isValid())
+      {
     
-    for(int mm=0; mm<14; mm++)
-      for(int ss=0; ss<16; ss++)
-        for(int ttss=0; ttss<10; ttss++){
-          treeVariables_.casSignal[mm][ss][ttss]    = -1000;
-          treeVariables_.casSignalRaw[mm][ss][ttss] = -1000;
-	};                                                                               
-    for(CastorDigiCollection::const_iterator j=fCastorDigis->begin(); j!=fCastorDigis->end(); j++){
-      const CastorDataFrame digi     = (const CastorDataFrame)(*j);
-      const HcalCastorDetId CastorID = digi.id();
-      sec = CastorID.sector() - 1;
-      mod = CastorID.module() - 1;
-      
-      // converter object for ADC->fC   
-      const CastorQIECoder * coder           = fConditions->getCastorCoder(digi.id().rawId());
-      
-      // pedestal object (db pedestal values)
-      const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
-      
-      last_ts = (fNTS<digi.size() ? fNTS:digi.size());
-      //    std::cout << "Event#" << iEvent.id().event()
-      //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
-      
-      for(short unsigned int ts = 0; ts<last_ts; ts++){
-        // charge [fC] 
-        charge0       = coder->charge(*converter, digi.sample(ts).adc(), digi.sample(ts).capid());
-        // charge corrected = charge [fC] - pedestal [fC] (from DB)
-        charge_correct= charge0 - pedestals_mean->getValue(digi.sample(ts).capid());
-	
-        // fill the root tree
-        treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
-        treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
-        treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
-        //      std::cout << "\t" << charge0;      
-      };
-    }; // end castor collection loop
+        double charge0, charge_correct;
+        short unsigned int sec, mod;
+        short unsigned int last_ts;
+        
+        for(int mm=0; mm<14; mm++)
+          for(int ss=0; ss<16; ss++)
+            for(int ttss=0; ttss<10; ttss++){
+              treeVariables_.casSignal[mm][ss][ttss]    = -1000;
+              treeVariables_.casSignalRaw[mm][ss][ttss] = -1000;
+            };                                                                               
+        for(CastorDigiCollection::const_iterator j=cas_digi->begin(); j!=cas_digi->end(); j++){
+          const CastorDataFrame digi     = (const CastorDataFrame)(*j);
+          const HcalCastorDetId CastorID = digi.id();
+          sec = CastorID.sector() - 1;
+          mod = CastorID.module() - 1;
+          
+          // converter object for ADC->fC   
+          const CastorQIECoder * coder           = fConditions->getCastorCoder(digi.id().rawId());
+          
+          // pedestal object (db pedestal values)
+          const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
+          
+          last_ts = (fNTS<digi.size() ? fNTS:digi.size());
+          //    std::cout << "Event#" << iEvent.id().event()
+          //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
+          
+          for(short unsigned int ts = 0; ts<last_ts; ts++){
+            // charge [fC] 
+            charge0       = coder->charge(*converter, digi.sample(ts).adc(), digi.sample(ts).capid());
+            // charge corrected = charge [fC] - pedestal [fC] (from DB)
+            charge_correct= charge0 - pedestals_mean->getValue(digi.sample(ts).capid());
+            
+            // fill the root tree
+            treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
+            treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
+            treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
+            //      std::cout << "\t" << charge0;      
+          }
+        } // end castor collection loop
+      }
+    else
+      edm::LogWarning("CAS") << " Castor digis not valid " << std::endl;
 
 
   // *********************************** Trigger      ****************************************
