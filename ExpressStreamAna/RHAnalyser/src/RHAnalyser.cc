@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Igor Katkov,32 4-A19,+41227676358,
 //         Created:  Wed Jan 16 14:14:19 CET 2013
-// $Id: RHAnalyser.cc,v 1.3 2013/01/18 21:34:01 cbaus Exp $
+// $Id: RHAnalyser.cc,v 1.5 2013/01/19 17:06:15 cbaus Exp $
 //
 //
 
@@ -236,9 +236,9 @@ RHAnalyser::~RHAnalyser()
 void
 RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  fNEvent++;
+  fNEvent++; //iEvent.id().event() // in CMS parallel not ordered
   if (fNEvent % 1 == 0)
-    std::cout << "Event: " << fNEvent << std::endl;
+    std::cout << "Event: " << fNEvent << " LumiSec: " << iEvent.luminosityBlock() << " BX: " << iEvent.bunchCrossing() << std::endl;
   using namespace edm;
 
 
@@ -320,8 +320,8 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
           
           last_ts = (fNTS<digi.size() ? fNTS:digi.size());
-          //    std::cout << "Event#" << iEvent.id().event()
-          //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
+              std::cout << "Event#" << iEvent.id().event()
+                        << "; m" << CastorID.module() << "s" << CastorID.sector() ;
           
           for(short unsigned int ts = 0; ts<last_ts; ts++){
             // charge [fC] 
@@ -333,8 +333,9 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
             treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
             treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
-            //      std::cout << "\t" << charge0;      
+            std::cout << "\t" << digi.sample(ts).adc() << "\t" << charge0;      
           }
+          std::cout << std::endl;
         } // end castor collection loop
       }
     else
