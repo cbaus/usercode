@@ -9,6 +9,7 @@ using namespace std;
 
 void GainAna()
 {
+  //**********************************************INPUT******************************
   TFile* data_file = NULL;
   data_file = TFile::Open("root://eoscms//eos/cms/store/group/phys_heavyions/velicanu/forest/PA2013_HiForest_Express_r210658_autoforest_v51.root");
   if (!data_file) cerr << "Cannot find data file" << endl;
@@ -55,6 +56,8 @@ void GainAna()
   data_tree->SetBranchAddress("depth",data_cas_depth);
   data_tree->SetBranchAddress("iphi",data_cas_iphi);
   data_tree->SetBranchAddress("L1Tech_HCAL_HF_coincidence_PM.v2",&data_HLT_PAMinBiasHF_v1);
+
+  //*********************************OUTPUT************************+++
 
   TFile* out_file = new TFile("histos.root","RECREATE");
 
