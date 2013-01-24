@@ -1,3 +1,5 @@
+#define MAXEVT 250000
+
 #include "TTree.h"
 #include "TFile.h"
 #include "TH2D.h"
@@ -13,6 +15,10 @@ void GainAna()
   TTree* data_tree = NULL; 
   ((TDirectory*)data_file->Get("rechitanalyzer"))->GetObject("castor",data_tree);
   if (!data_tree) cerr << "Cannot find data tree" << endl;
+  TTree* data_friend_tree = NULL;
+  ((TDirectory*)data_file->Get("hltanalysis"))->GetObject("HltTree",data_friend_tree);
+  if (!data_friend_tree) cerr << "Cannot find data friend tree" << endl;
+  data_tree->AddFriend(data_friend_tree);
   
   TFile* mc_file = NULL;
   mc_file = TFile::Open("root://eoscms//eos/cms/store/group/phys_heavyions/azsigmon/HiForest_pPb_Epos_336800.root");
@@ -20,27 +26,35 @@ void GainAna()
   TTree* mc_tree = NULL; 
   ((TDirectory*)mc_file->Get("rechitanalyzer"))->GetObject("castor",mc_tree);
   if (!mc_tree) cerr << "Cannot find mc tree" << endl;
+  TTree* mc_friend_tree = NULL;
+  ((TDirectory*)mc_file->Get("hltanalysis"))->GetObject("HltTree",mc_friend_tree);
+  if (!mc_friend_tree) cerr << "Cannot find mc friend tree" << endl;
+  mc_tree->AddFriend(mc_friend_tree);
   
   const int n_cas_rechits = 224;
   float mc_cas_e[n_cas_rechits];
   int mc_cas_sat[n_cas_rechits];
   int mc_cas_depth[n_cas_rechits];
   int mc_cas_iphi[n_cas_rechits];
+  int mc_HLT_PAMinBiasHF_v1;
 
   float data_cas_e[n_cas_rechits];
   int data_cas_sat[n_cas_rechits];
   int data_cas_depth[n_cas_rechits];
   int data_cas_iphi[n_cas_rechits];
+  int data_HLT_PAMinBiasHF_v1;
 
   mc_tree->SetBranchAddress("e",mc_cas_e);
   mc_tree->SetBranchAddress("saturation",mc_cas_sat);
   mc_tree->SetBranchAddress("depth",mc_cas_depth);
   mc_tree->SetBranchAddress("iphi",mc_cas_iphi);
+  mc_tree->SetBranchAddress("L1Tech_HCAL_HF_coincidence_PM.v2",&mc_HLT_PAMinBiasHF_v1);
 
   data_tree->SetBranchAddress("e",data_cas_e);
   data_tree->SetBranchAddress("saturation",data_cas_sat);
   data_tree->SetBranchAddress("depth",data_cas_depth);
   data_tree->SetBranchAddress("iphi",data_cas_iphi);
+  data_tree->SetBranchAddress("L1Tech_HCAL_HF_coincidence_PM.v2",&data_HLT_PAMinBiasHF_v1);
 
   TFile* out_file = new TFile("histos.root","RECREATE");
 
@@ -51,14 +65,25 @@ void GainAna()
 
   TH1D* mc_h_cas_e_dist         = new TH1D("mc_h_cas_e_dist","",100,-50,500);
   TH1D* data_h_cas_e_dist       = new TH1D("data_h_cas_e_dist","",100,-50,500);
+
+  TH1D* mc_h_hlt                = new TH1D("mc_h_hlt","",10,-0.5,9.5);
+  TH1D* data_h_hlt              = new TH1D("data_h_hlt","",10,-0.5,9.5);
   
   //**********************************LOOP*******************
 
   for(int i=0; i<mc_tree->GetEntries(); i++)
     {
-      if(i==-1)break;
+      if(i==MAXEVT) break;
       if(i % 10000 == 0) cout << "MC Entry: " << i << " / " << mc_tree->GetEntries() << endl;
       mc_tree->GetEntry();
+
+      //trigger
+      //      if(!mc_HLT_PAMinBiasHF_v1)
+      //        {cout << "skipped\n";
+      //          continue;}
+
+      mc_h_hlt->Fill(mc_HLT_PAMinBiasHF_v1);
+
       for(int ch=0; ch<224; ch++)
         {
           if(mc_cas_e[ch] > 0.5)
@@ -72,8 +97,17 @@ void GainAna()
     }
   for(int i=0; i<data_tree->GetEntries(); i++)
     {
+      if(i==MAXEVT) break;
       if(i % 10000 == 0) cout << "DATA Entry: " << i << " / " << data_tree->GetEntries() << endl;
       data_tree->GetEntry();
+
+      //trigger
+      //      if(!data_HLT_PAMinBiasHF_v1)
+      //        {cout << "skipped\n";
+      //          continue;}
+
+      data_h_hlt->Fill(data_HLT_PAMinBiasHF_v1);
+      
       for(int ch=0; ch<224; ch++)
         {
           if(data_cas_e[ch] > 0.5)
@@ -97,5 +131,6 @@ void GainAna()
 
   //******************END************************
 
+  out_file->Write();
   out_file->Save();
 }
