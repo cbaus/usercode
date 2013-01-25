@@ -1,4 +1,4 @@
-#define MAXEVT 250000
+#define MAXEVT 50000
 
 #include "TTree.h"
 #include "TFile.h"
@@ -22,7 +22,7 @@ void GainAna()
   data_tree->AddFriend(data_friend_tree);
   
   TFile* mc_file = NULL;
-  mc_file = TFile::Open("root://eoscms//eos/cms/store/group/phys_heavyions/azsigmon/HiForest_pPb_Epos_336800.root");
+  mc_file = TFile::Open("root://eoscms//eos/cms//store/caf/user/dgulhan/pPb_Hijing_MB/HiForest_v03_mergedv02/merged_forest_0.root");
   if (!mc_file) cerr << "Cannot find mc file" << endl;
   TTree* mc_tree = NULL; 
   ((TDirectory*)mc_file->Get("rechitanalyzer"))->GetObject("castor",mc_tree);
@@ -66,6 +66,8 @@ void GainAna()
   TH2D* data_h_cas_e            = new TH2D("data_h_cas_e","",14,0.5,14.5,16,0.5,16.5);
   TH2D* data_h_cas_n            = new TH2D("data_h_cas_n","",14,0.5,14.5,16,0.5,16.5);
 
+  TH2D* div_h_cas_e             ;
+
   TH1D* mc_h_cas_e_dist         = new TH1D("mc_h_cas_e_dist","",100,-50,500);
   TH1D* data_h_cas_e_dist       = new TH1D("data_h_cas_e_dist","",100,-50,500);
 
@@ -78,7 +80,7 @@ void GainAna()
     {
       if(i==MAXEVT) break;
       if(i % 10000 == 0) cout << "MC Entry: " << i << " / " << mc_tree->GetEntries() << endl;
-      mc_tree->GetEntry();
+      mc_tree->GetEntry(i);
 
       //trigger
       //      if(!mc_HLT_PAMinBiasHF_v1)
@@ -89,7 +91,8 @@ void GainAna()
 
       for(int ch=0; ch<224; ch++)
         {
-          if(mc_cas_e[ch] > 0.5)
+          //cout << "mc " << mc_cas_depth[ch] << "," << mc_cas_iphi[ch] << ": E=" << mc_cas_e[ch] << endl;
+          if(mc_cas_e[ch] > 0.)
             {
               mc_h_cas_n->Fill(mc_cas_depth[ch],mc_cas_iphi[ch]);
               mc_h_cas_e->Fill(mc_cas_depth[ch],mc_cas_iphi[ch],mc_cas_e[ch]);
@@ -102,7 +105,7 @@ void GainAna()
     {
       if(i==MAXEVT) break;
       if(i % 10000 == 0) cout << "DATA Entry: " << i << " / " << data_tree->GetEntries() << endl;
-      data_tree->GetEntry();
+      data_tree->GetEntry(i);
 
       //trigger
       //      if(!data_HLT_PAMinBiasHF_v1)
@@ -113,7 +116,7 @@ void GainAna()
       
       for(int ch=0; ch<224; ch++)
         {
-          if(data_cas_e[ch] > 0.5)
+          if(data_cas_e[ch] > 0.)
             {
               data_h_cas_n->Fill(data_cas_depth[ch],data_cas_iphi[ch]);
               data_h_cas_e->Fill(data_cas_depth[ch],data_cas_iphi[ch],data_cas_e[ch]);
@@ -127,7 +130,12 @@ void GainAna()
 
   mc_h_cas_e->Divide(mc_h_cas_n);
   data_h_cas_e->Divide(data_h_cas_n);
-  mc_h_cas_e->Divide(data_h_cas_e);
+  mc_h_cas_e->Scale(1./mc_h_cas_e->GetBinContent(mc_h_cas_e->GetBin(1,8)));
+  data_h_cas_e->Scale(1./data_h_cas_e->GetBinContent(data_h_cas_e->GetBin(1,8)));
+
+  div_h_cas_e = new TH2D(*mc_h_cas_e);
+  div_h_cas_e->SetName("div_h_cas_e");
+  div_h_cas_e->Divide(data_h_cas_e);
 
   mc_h_cas_e_dist->Scale(1./mc_h_cas_e_dist->GetEntries());
   data_h_cas_e_dist->Scale(1./data_h_cas_e_dist->GetEntries());
