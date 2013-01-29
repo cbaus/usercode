@@ -1,4 +1,4 @@
-#define MAXEVT 5000
+#define MAXEVT 100000
 
 #include "TTree.h"
 #include "TFile.h"
@@ -13,28 +13,36 @@ void GainAna()
   TFile* data_file = NULL; //****FILE
   data_file = TFile::Open("root://eoscms//eos/cms/store/group/phys_heavyions/velicanu/forest/PA2013_HiForest_Express_r210658_autoforest_v51.root");
   if (!data_file) cerr << "Cannot find data file" << endl;
+
   TTree* data_tree = NULL; //****TREE1
   ((TDirectory*)data_file->Get("rechitanalyzer"))->GetObject("castor",data_tree);
   if (!data_tree) cerr << "Cannot find data tree" << endl;
+
   TTree* data_friend_tree1 = NULL; //****TREE2
   ((TDirectory*)data_file->Get("hltanalysis"))->GetObject("HltTree",data_friend_tree1);
   if (!data_friend_tree1) cerr << "Cannot find data friend tree" << endl;
   data_tree->AddFriend(data_friend_tree1);
+
   TTree* data_friend_tree2 = NULL; //****TREE3
   ((TDirectory*)data_file->Get("pixelTrack"))->GetObject("trackTree",data_friend_tree2);
   if (!data_friend_tree2) cerr << "Cannot find data friend tree" << endl;
   data_tree->AddFriend(data_friend_tree2);
 
+
+
   TFile* mc_file = NULL; //****FILE
   mc_file = TFile::Open("root://eoscms//eos/cms//store/caf/user/dgulhan/pPb_Hijing_MB/HiForest_v03_mergedv02/merged_forest_0.root");
   if (!mc_file) cerr << "Cannot find mc file" << endl;
+
   TTree* mc_tree = NULL; //****TREE1
   ((TDirectory*)mc_file->Get("rechitanalyzer"))->GetObject("castor",mc_tree);
   if (!mc_tree) cerr << "Cannot find mc tree" << endl;
+
   TTree* mc_friend_tree1 = NULL; //****TREE2
   ((TDirectory*)mc_file->Get("hltanalysis"))->GetObject("HltTree",mc_friend_tree1);
   if (!mc_friend_tree1) cerr << "Cannot find mc friend tree" << endl;
   mc_tree->AddFriend(mc_friend_tree1);
+
   TTree* mc_friend_tree2 = NULL; //****TREE3
   ((TDirectory*)mc_file->Get("pixelTrack"))->GetObject("trackTree",mc_friend_tree2);
   if (!mc_friend_tree2) cerr << "Cannot find mc friend tree" << endl;
@@ -66,7 +74,7 @@ void GainAna()
   mc_tree->SetBranchAddress("depth",mc_cas_depth);
   mc_tree->SetBranchAddress("iphi",mc_cas_iphi);
 
-  mc_tree->SetBranchAddress("nTrk",mc_nTrk);
+  mc_tree->SetBranchAddress("nTrk",&mc_nTrk);
 
   mc_tree->SetBranchAddress("HLT_PAMinBiasHF_v1",&mc_HLT_PAMinBiasHF_v1);
   mc_tree->SetBranchAddress("L1_CastorEm_TotemLowMultiplicity",&mc_algo_99);
@@ -77,7 +85,7 @@ void GainAna()
   data_tree->SetBranchAddress("depth",data_cas_depth);
   data_tree->SetBranchAddress("iphi",data_cas_iphi);
 
-  data_tree->SetBranchAddress("nTrk",data_nTrk);
+  data_tree->SetBranchAddress("nTrk",&data_nTrk);
 
   data_tree->SetBranchAddress("HLT_PAMinBiasHF_v1",&data_HLT_PAMinBiasHF_v1);
   data_tree->SetBranchAddress("L1_CastorEm_TotemLowMultiplicity",&data_algo_99);
@@ -99,11 +107,13 @@ void GainAna()
   TH1D* mc_h_hlt                = new TH1D("mc_h_hlt","",10,-0.5,9.5);
   TH1D* data_h_hlt              = new TH1D("data_h_hlt","",10,-0.5,9.5);
 
-  TH1D* mc_nTrk                 = new TH1D("mc_nTrk",";pixel tracks",30,0,200);
-  TH1D* data_nTrk               = new TH1D("data_nTrk",";pixel tracks",30,0,200);
+  TH1D* mc_h_nTrk               = new TH1D("mc_h_nTrk",";pixel tracks",30,0,200);
+  TH1D* data_h_nTrk             = new TH1D("data_h_nTrk",";pixel tracks",30,0,200);
+  TH1D* mc_had_em_ratio      = new TH1D("mc_had_em_ratio",";Castor EM/(HAD+EM)",30,0,1);
+  TH1D* data_had_em_ratio    = new TH1D("data_had_em_ratio",";Castor EM/(HAD+EM)",30,0,1);
 
-  TH1D* mc_nTrk_99              = new TH1D("mc_nTrk_99",";pixel tracks",30,0,200);
-  TH1D* data_nTrk_99            = new TH1D("data_nTrk_99",";pixel tracks",30,0,200);
+  TH1D* mc_h_nTrk_99            = new TH1D("mc_h_nTrk_99",";pixel tracks",30,0,200);
+  TH1D* data_h_nTrk_99          = new TH1D("data_h_nTrk_99",";pixel tracks",30,0,200);
   TH1D* mc_had_em_ratio_99      = new TH1D("mc_had_em_ratio_99",";Castor EM/(HAD+EM)",30,0,1);
   TH1D* data_had_em_ratio_99    = new TH1D("data_had_em_ratio_99",";Castor EM/(HAD+EM)",30,0,1);
 
@@ -127,17 +137,18 @@ void GainAna()
           if(mc_cas_depth[ch] < 6)
             mc_h_cas_e_dist->Fill(mc_cas_e[ch]);
           if(mc_cas_depth[ch] < 3)
-              mc_sum_cas_e_em += mc_cas_e[ch];
-          if(mc_cas_depth[ch] >= 3)
-              mc_sum_cas_e_had += mc_cas_e[ch];
+            mc_sum_cas_e_em += mc_cas_e[ch];
+          else
+            mc_sum_cas_e_had += mc_cas_e[ch];
         }
       //trigger
       if(mc_algo_99)
-      {
-        mc_had_em_ratio_99->Fill(mc_sum_cas_e_em/(mc_sum_cas_e_em+mc_sum_cas_e_had));
-        mc_nTrk_99->Fill(mc_nTrk);
-      }
-      mc_nTrk->Fill(mc_nTrk);
+        {
+          mc_had_em_ratio_99->Fill(mc_sum_cas_e_em/(mc_sum_cas_e_em+mc_sum_cas_e_had));
+          mc_h_nTrk_99->Fill(mc_nTrk);
+        }
+      mc_h_nTrk->Fill(mc_nTrk);
+      mc_had_em_ratio->Fill(mc_sum_cas_e_em/(mc_sum_cas_e_em+mc_sum_cas_e_had));
     }
   for(int i=0; i<data_tree->GetEntries(); i++)
     {
@@ -156,17 +167,18 @@ void GainAna()
           if(data_cas_depth[ch] < 6)
             data_h_cas_e_dist->Fill(data_cas_e[ch]);
           if(data_cas_depth[ch] < 3)
-              data_sum_cas_e_em += data_cas_e[ch];
-          if(data_cas_depth[ch] >= 3)
-              data_sum_cas_e_had += data_cas_e[ch];
+            data_sum_cas_e_em += data_cas_e[ch];
+          else
+            data_sum_cas_e_had += data_cas_e[ch];
         }
       //trigger
       if(data_algo_99)
-      {
-        data_had_em_ratio_99->Fill(data_sum_cas_e_em/(data_sum_cas_e_em+data_sum_cas_e_had));
-        data_nTrk_99->Fill(data_nTrk);
-      }
-      data_nTrk->Fill(data_nTrk);
+        {
+          data_had_em_ratio_99->Fill(data_sum_cas_e_em/(data_sum_cas_e_em+data_sum_cas_e_had));
+          data_h_nTrk_99->Fill(data_nTrk);
+        }
+      data_had_em_ratio->Fill(data_sum_cas_e_em/(data_sum_cas_e_em+data_sum_cas_e_had));
+      data_h_nTrk->Fill(data_nTrk);
     }
 
   //******************After LOOP*******************
@@ -183,11 +195,13 @@ void GainAna()
   mc_h_cas_e_dist->Scale(1./mc_h_cas_e_dist->GetEntries());
   data_h_cas_e_dist->Scale(1./data_h_cas_e_dist->GetEntries());
 
-  mc_nTrk->Scale(1./mc_nTrk->GetEntries());
-  data_nTrk->Scale(1./data_nTrk->GetEntries());
-  mc_nTrk_99->Scale(1./mc_nTrk_99->GetEntries());
-  data_nTrk_99->Scale(1./data_nTrk_99->GetEntries());
+  mc_h_nTrk->Scale(1./mc_h_nTrk->GetEntries());
+  data_h_nTrk->Scale(1./data_h_nTrk->GetEntries());
+  mc_h_nTrk_99->Scale(1./mc_h_nTrk_99->GetEntries());
+  data_h_nTrk_99->Scale(1./data_h_nTrk_99->GetEntries());
 
+  mc_had_em_ratio->Scale(1./mc_had_em_ratio->GetEntries());
+  data_had_em_ratio->Scale(1./data_had_em_ratio->GetEntries());
   mc_had_em_ratio_99->Scale(1./mc_had_em_ratio_99->GetEntries());
   data_had_em_ratio_99->Scale(1./data_had_em_ratio_99->GetEntries());
 
