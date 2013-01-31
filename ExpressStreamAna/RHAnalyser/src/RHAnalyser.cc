@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Igor Katkov,32 4-A19,+41227676358,
 //         Created:  Wed Jan 16 14:14:19 CET 2013
-// $Id: RHAnalyser.cc,v 1.6 2013/01/20 19:25:36 cbaus Exp $
+// $Id: RHAnalyser.cc,v 1.7 2013/01/24 14:47:31 cbaus Exp $
 //
 //
 
@@ -73,6 +73,7 @@ Implementation:
 // menu Lite:                       
 #include "DataFormats/L1GlobalTrigger/interface/L1GtTriggerMenuLite.h"
 
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 // ROOT
 #include "TROOT.h"
@@ -113,6 +114,18 @@ private:
 
   struct MonVariables
   {
+    int nbGenParticles;
+    float genE[100000];
+    float genPt[100000];
+    float genVx[100000];
+    float genVy[100000];
+    float genVz[100000];
+    float gennmax1;
+    float gennmax2;
+    float genPVx;
+    float genPVy;
+    float genPVz;
+
     int nbCasRecHits;
     double casRecHitEnergy[224];
     int    casRecHitIphi[224];
@@ -194,6 +207,18 @@ RHAnalyser::RHAnalyser(const edm::ParameterSet& iConfig) :
 
   rhtree_ = fs_->make<TTree>("RHTree","RHTree"); 
 
+  rhtree_->Branch("nbGenParticles",&treeVariables_.nbGenParticles,"nbGenParticles/i");
+  rhtree_->Branch("genE",treeVariables_.genE,"genE[nbGenParticles]/F");
+  rhtree_->Branch("genPt",treeVariables_.genPt,"genPt[nbGenParticles]/F");
+  rhtree_->Branch("genVx",treeVariables_.genVx,"genVx[nbGenParticles]/F");
+  rhtree_->Branch("genVy",treeVariables_.genVy,"genVy[nbGenParticles]/F");
+  rhtree_->Branch("genVz",treeVariables_.genVz,"genVz[nbGenParticles]/F");
+  rhtree_->Branch("gennmax1",&treeVariables_.gennmax1,"gennmax1/F");
+  rhtree_->Branch("gennmax2",&treeVariables_.gennmax2,"gennmax2/F");
+  rhtree_->Branch("genPVx",&treeVariables_.genPVx,"genPVx/F");
+  rhtree_->Branch("genPVy",&treeVariables_.genPVy,"genPVy/F");
+  rhtree_->Branch("genPVz",&treeVariables_.genPVz,"genPVz/F");
+
   rhtree_->Branch("nbCasRecHits",&treeVariables_.nbCasRecHits,"nbCasRecHits/i");
   rhtree_->Branch("casRecHitEnergy",treeVariables_.casRecHitEnergy,"casRecHitEnergy[nbCasRecHits]/D");
   rhtree_->Branch("casRecHitIphi",treeVariables_.casRecHitIphi,"casRecHitIphi[nbCasRecHits]/I");
@@ -253,6 +278,64 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iSetup.get<SetupRecord>().get(pSetup);
 #endif
 
+  // *************************** Gen Particles ********************************
+
+  edm::Handle<reco::GenParticleCollection> genParticles;
+  try{ iEvent.getByLabel("genParticles", genParticles); }
+  catch(...) { edm::LogWarning("GEN") << " Cannot get gen parrticle collection " << std::endl; }
+  if(genParticles.failedToGet()!=0 || !genParticles.isValid())
+    {
+      edm::LogWarning("GEN") << " Cannot get gen particle collection " << std::endl;
+    }
+  else
+    {
+      treeVariables_.nbGenParticles=genParticles->size();
+      double maxpt1=-1;
+      double maxpt2=-1;
+
+      int nSave=0;
+      treeVariables_.gennmax1 = -1;
+      treeVariables_.gennmax2 = -1;
+      for(size_t i = 0; i < genParticles->size(); ++ i)
+        {
+          const reco::GenParticle & p = (*genParticles)[i];
+          if(p.status() !=1)
+            {
+              if(p.status()==4)
+                {                  
+                  treeVariables_.genPVx = p.vx();
+                  treeVariables_.genPVy = p.vy();
+                  treeVariables_.genPVz = p.vz();
+                }
+              continue;
+            }
+          //std::cout << i << " " << nSave << " " << p.energy() << " " << p.status() << std::endl;
+          treeVariables_.genE[nSave] = p.energy();
+          treeVariables_.genPt[nSave] = p.pt();
+          treeVariables_.genVx[nSave] = p.vx();
+          treeVariables_.genVy[nSave] = p.vy();
+          treeVariables_.genVz[nSave] = p.vz();
+          if(p.pt()>maxpt1)
+            {
+              maxpt1=p.pt();
+              treeVariables_.gennmax1 = nSave;
+              treeVariables_.genPVx = p.vz();
+
+            }
+          if(p.pt()>maxpt2 && treeVariables_.gennmax1 != nSave)
+            {
+              if(treeVariables_.gennmax1==-1 || (treeVariables_.gennmax1!=-1 && (*genParticles)[treeVariables_.gennmax1].vertex()!=(*genParticles)[nSave].vertex()))
+                {
+                  maxpt2=p.pt();
+                  treeVariables_.gennmax2 = nSave;
+                  treeVariables_.genPVy = p.vz();
+                }
+            }
+
+          nSave++;
+        }
+    }
+
   // *************************** CASTOR RecHits ********************************
 
   edm::Handle<CastorRecHitCollection> casrechits;
@@ -272,10 +355,10 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       HcalCastorDetId castorid = rh.id();
       energyCastor += rh.energy();
       if (nhits  < 224) {
-	treeVariables_.nbCasRecHits = nhits + 1 ;
-	treeVariables_.casRecHitEnergy[nhits] = rh.energy();
-	treeVariables_.casRecHitIphi[nhits] = castorid.sector();
-	treeVariables_.casRecHitIdepth[nhits] = castorid.module();
+        treeVariables_.nbCasRecHits = nhits + 1 ;
+        treeVariables_.casRecHitEnergy[nhits] = rh.energy();
+        treeVariables_.casRecHitIphi[nhits] = castorid.sector();
+        treeVariables_.casRecHitIdepth[nhits] = castorid.module();
         treeVariables_.casRecHitSaturation[nhits] = static_cast<int>( rh.flagField(HcalCaloFlagLabels::ADCSaturationBit) );
       }
       nhits++;
@@ -284,67 +367,67 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
   // *********************************** CASTOR Digis ****************************************
-    const CastorQIEShape* converter = fConditions->getCastorShape();
+  const CastorQIEShape* converter = fConditions->getCastorShape();
     
-    // castor digis
+  // castor digis
 
-    edm::Handle<CastorDigiCollection> cas_digi_h;
-    try{ iEvent.getByType(cas_digi_h); }
-    catch(...) { edm::LogWarning("CAS ") << " Cannot get Castor Digi " << std::endl; }
+  edm::Handle<CastorDigiCollection> cas_digi_h;
+  try{ iEvent.getByType(cas_digi_h); }
+  catch(...) { edm::LogWarning("CAS ") << " Cannot get Castor Digi " << std::endl; }
     
-    const CastorDigiCollection *cas_digi = cas_digi_h.failedToGet()? 0 : &*cas_digi_h;
+  const CastorDigiCollection *cas_digi = cas_digi_h.failedToGet()? 0 : &*cas_digi_h;
 
-    if(cas_digi && cas_digi_h.isValid())
-      {
+  if(cas_digi && cas_digi_h.isValid())
+    {
     
-        double charge0, charge_correct;
-        short unsigned int sec, mod;
-        short unsigned int last_ts;
+      double charge0, charge_correct;
+      short unsigned int sec, mod;
+      short unsigned int last_ts;
         
-        for(int mm=0; mm<14; mm++)
-          for(int ss=0; ss<16; ss++)
-            for(int ttss=0; ttss<10; ttss++){
-              treeVariables_.casSignal[mm][ss][ttss]    = -1000;
-              treeVariables_.casSignalRaw[mm][ss][ttss] = -1000;
-            };                                                                               
-        for(CastorDigiCollection::const_iterator j=cas_digi->begin(); j!=cas_digi->end(); j++){
-          const CastorDataFrame digi     = (const CastorDataFrame)(*j);
-          const HcalCastorDetId CastorID = digi.id();
-          sec = CastorID.sector() - 1;
-          mod = CastorID.module() - 1;
+      for(int mm=0; mm<14; mm++)
+        for(int ss=0; ss<16; ss++)
+          for(int ttss=0; ttss<10; ttss++){
+            treeVariables_.casSignal[mm][ss][ttss]    = -1000;
+            treeVariables_.casSignalRaw[mm][ss][ttss] = -1000;
+          };                                                                               
+      for(CastorDigiCollection::const_iterator j=cas_digi->begin(); j!=cas_digi->end(); j++){
+        const CastorDataFrame digi     = (const CastorDataFrame)(*j);
+        const HcalCastorDetId CastorID = digi.id();
+        sec = CastorID.sector() - 1;
+        mod = CastorID.module() - 1;
           
-          // converter object for ADC->fC   
-          const CastorQIECoder * coder           = fConditions->getCastorCoder(digi.id().rawId());
+        // converter object for ADC->fC   
+        const CastorQIECoder * coder           = fConditions->getCastorCoder(digi.id().rawId());
           
-          // pedestal object (db pedestal values)
-          const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
+        // pedestal object (db pedestal values)
+        const CastorPedestal * pedestals_mean  = fPedestals->getValues(digi.id().rawId());
           
-          last_ts = (fNTS<digi.size() ? fNTS:digi.size());
-          //std::cout << "Event#" << iEvent.id().event()
-          //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
+        last_ts = (fNTS<digi.size() ? fNTS:digi.size());
+        //std::cout << "Event#" << iEvent.id().event()
+        //              << "; m" << CastorID.module() << "s" << CastorID.sector() ;
           
-          for(short unsigned int ts = 0; ts<last_ts; ts++){
-            // charge [fC] 
-            charge0       = coder->charge(*converter, digi.sample(ts).adc(), digi.sample(ts).capid());
-            // charge corrected = charge [fC] - pedestal [fC] (from DB)
-            charge_correct= charge0 - pedestals_mean->getValue(digi.sample(ts).capid());
+        for(short unsigned int ts = 0; ts<last_ts; ts++){
+          // charge [fC] 
+          charge0       = coder->charge(*converter, digi.sample(ts).adc(), digi.sample(ts).capid());
+          // charge corrected = charge [fC] - pedestal [fC] (from DB)
+          charge_correct= charge0 - pedestals_mean->getValue(digi.sample(ts).capid());
             
-            // fill the root tree
-            treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
-            treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
-            treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
-            //std::cout << "\t" << digi.sample(ts).adc() << "\t" << charge0;      
-          }
-          //std::cout << std::endl;
-        } // end castor collection loop
-      }
-    else
-      edm::LogWarning("CAS") << " Castor digis not valid " << std::endl;
+          // fill the root tree
+          treeVariables_.casSignal[mod][sec][ts]    = charge_correct;
+          treeVariables_.casSignalRaw[mod][sec][ts] = digi.sample(ts).adc();
+          treeVariables_.casCapID[mod][sec][ts]     = digi.sample(ts).capid();
+          //std::cout << "\t" << digi.sample(ts).adc() << "\t" << charge0;      
+        }
+        //std::cout << std::endl;
+      } // end castor collection loop
+    }
+  else
+    edm::LogWarning("CAS") << " Castor digis not valid " << std::endl;
 
 
   // *********************************** Trigger      ****************************************
 
-    bool trigger = Trigger(iEvent);
+  bool trigger = Trigger(iEvent);
 
   // *********************************** ZDC RecHits ******************************************
 
@@ -362,13 +445,13 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       const ZDCRecHit & zdcrechit = (*zdcrechits)[i1];
       energyZDC += zdcrechit.energy();
       if (nZhits < 18) {
-	treeVariables_.nbZDCRecHits = nZhits + 1;
-	treeVariables_.zdcRecHitEnergy[nZhits] = zdcrechit.energy();
-	treeVariables_.zdcRecHitIside[nZhits] = zdcrechit.id().zside();
-	treeVariables_.zdcRecHitIsection[nZhits] = zdcrechit.id().section();
-	treeVariables_.zdcRecHitIchannel[nZhits] = zdcrechit.id().channel();
-	//#include "RecoLocalCalo/HcalRecAlgos/interface/HcalCaloFlagLabels.h"
-	treeVariables_.zdcRecHitSaturation[nZhits] = static_cast<int>( zdcrechit.flagField(HcalCaloFlagLabels::ADCSaturationBit) );
+        treeVariables_.nbZDCRecHits = nZhits + 1;
+        treeVariables_.zdcRecHitEnergy[nZhits] = zdcrechit.energy();
+        treeVariables_.zdcRecHitIside[nZhits] = zdcrechit.id().zside();
+        treeVariables_.zdcRecHitIsection[nZhits] = zdcrechit.id().section();
+        treeVariables_.zdcRecHitIchannel[nZhits] = zdcrechit.id().channel();
+        //#include "RecoLocalCalo/HcalRecAlgos/interface/HcalCaloFlagLabels.h"
+        treeVariables_.zdcRecHitSaturation[nZhits] = static_cast<int>( zdcrechit.flagField(HcalCaloFlagLabels::ADCSaturationBit) );
       }
       nZhits++;
     } // enf of loop zdc rechits
@@ -390,9 +473,9 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       if (_ShowDebug) edm::LogVerbatim("ZDCDigi") << " ZDCDigiCollection  size: " << zdc_digi->size() << std::endl;
       for ( ZDCDigiCollection::const_iterator j=zdc_digi->begin(); j != zdc_digi->end(); ++j ) {
         double energyZDCDigi = 0;
-	const ZDCDataFrame& digi = (const ZDCDataFrame)(*j);
+        const ZDCDataFrame& digi = (const ZDCDataFrame)(*j);
         int lastTS = 0;
-	if (nZdigi < 18) {
+        if (nZdigi < 18) {
           treeVariables_.nbZDCDigis = nZdigi + 1;   
           treeVariables_.zdcDigiIside[nZdigi] = digi.id().zside();
           treeVariables_.zdcDigiIsection[nZdigi] = digi.id().section();
@@ -405,7 +488,7 @@ RHAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             (treeVariables_.zdcDigiEnergyFC)[nZdigi][ts] = energy;
             (treeVariables_.zdcDigiEnergyADC)[nZdigi][ts] = digi.sample(ts).adc();
           } //end of loop zdc digi time slices
-	}
+        }
         nZdigi++;
         if (_ShowDebug) edm::LogVerbatim(" ZDCDigi ") << " ZDC energy (all ts FC): " << energyZDCDigi << " TS#: " << lastTS << std::endl;
       } // end loop zdc digis
@@ -443,7 +526,7 @@ RHAnalyser::beginRun(edm::Run const&, const edm::EventSetup& iSetup)
 {
   fNRun++;
   std::cout << "Run: " << fNRun << std::endl;
- //+++++++++++++++++++++++++ ADC<->fC converter  +++++++++++++++++++++++++++++++++++++++++//    
+  //+++++++++++++++++++++++++ ADC<->fC converter  +++++++++++++++++++++++++++++++++++++++++//    
   iSetup.get<CastorDbRecord>().get(fConditions);
   //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//            
     

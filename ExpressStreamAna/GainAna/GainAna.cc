@@ -1,4 +1,4 @@
-#define MAXEVT 100000
+#define MAXEVT -100000
 
 #include "TTree.h"
 #include "TFile.h"
