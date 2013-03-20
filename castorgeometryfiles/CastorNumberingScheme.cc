@@ -135,7 +135,7 @@ uint32_t CastorNumberingScheme::getUnitID(const G4Step* aStep) const {
         if (1 > sector || sector > 16)
           {
 #ifdef debug
-            edm::LogDebug("ForwardSim") << "--------- Wrong channel mapping";
+            LogDebug("ForwardSim") << "--------- Wrong channel mapping";
 #endif
             continue;
           }
@@ -148,7 +148,7 @@ uint32_t CastorNumberingScheme::getUnitID(const G4Step* aStep) const {
         if (1 > sector || sector > 16)
           {
 #ifdef debug
-            edm::LogDebug("ForwardSim") << "--------- Wrong channel mapping";
+            LogDebug("ForwardSim") << "--------- Wrong channel mapping";
 #endif
             continue;
           }
