@@ -50,7 +50,6 @@ CastorNumberingScheme::CastorNumberingScheme(): lvCASTFar(0),lvCASTNear(0),
 			 << lvC4HF << " for C4HF.";
 #endif
 
-  copyNoToSector.clear();
   copyNoToSector[1 ] = 12;
   copyNoToSector[2 ] = 11;
   copyNoToSector[3 ] = 10;
@@ -87,7 +86,6 @@ uint32_t CastorNumberingScheme::getUnitID(const G4Step* aStep) const {
 #endif
 
   if (level > 0) {
-    edm::LogInfo("ForwardSim") << "---------detector LEVEL " << level << "----------";
 
     int zside   = 0;
     int sector  = 0;
@@ -102,15 +100,15 @@ uint32_t CastorNumberingScheme::getUnitID(const G4Step* aStep) const {
       if(lvs[ich] == lvCAST) {
         // Z index +Z = 1 ; -Z = 2
         zside   = copyno[ich];
-        edm::LogInfo("ForwardSim") << "--------- CAST copy number  " << copyno[ich] << "----------";
         if (copyno[ich] == 2) {
           farSide = true;
-        } else if (copyno[ich] == 3) { nearSide = true; }
+        }
+        else if (copyno[ich] == 3) {
+          nearSide = true;
+        }
       }     // 2 = Far : 3 = Near
-
+      
       // fist do the numbering for the nearSide : sectors 1-8
-      edm::LogInfo("ForwardSim") << "--------- CASTOR Near Side  " << nearSide ;
-      edm::LogInfo("ForwardSim") << "--------- CASTOR Far Side  " << farSide ;
       if(lvs[ich] == lvCAES || lvs[ich] == lvCEDS) {
         // sector number for dead material 1 - 8
         //section = HcalCastorDetId::EM;
@@ -134,64 +132,29 @@ uint32_t CastorNumberingScheme::getUnitID(const G4Step* aStep) const {
         sector = sector*2-1;
         if (farSide)
           sector += 8;
-        if (!copyNoToSector.count(sector))
+        if (1 > sector || sector > 16)
           {
-            edm::LogInfo("ForwardSim") << "--------- Wrong channel mapping";
+#ifdef debug
+            edm::LogDebug("ForwardSim") << "--------- Wrong channel mapping";
+#endif
             continue;
           }
-        sector = copyNoToSector.find(sector)->second;
+        sector = copyNoToSector[sector];
       } else if(lvs[ich] == lvC4EF || lvs[ich] == lvC4HF) {
         // sector number for sensitive material 1 - 16
         sector = sector*2;
         if (farSide)
           sector += 8;
-        if (!copyNoToSector.count(sector))
+        if (1 > sector || sector > 16)
           {
-            edm::LogInfo("ForwardSim") << "--------- Wrong channel mapping";
+#ifdef debug
+            edm::LogDebug("ForwardSim") << "--------- Wrong channel mapping";
+#endif
             continue;
           }
-        sector = copyNoToSector.find(sector)->second;
+        sector = copyNoToSector[sector];
       }
-
-      if (!farSide && !nearSide) edm::LogInfo("ForwardSim") << "--------- NOT NEAR NOR FAR SIDE!!!!!!";
-      //   */
-
-      /*
-      //  default numbering
-      for (int ich=0; ich  <  level; ich++) {
-      if(lvs[ich] == lvCAST) {
-      // Z index +Z = 1 ; -Z = 2
-      zside   = copyno[ich];
-      } else if(lvs[ich] == lvCAES || lvs[ich] == lvCEDS) {
-      // sector number for dead material 1 - 8
-      //section = HcalCastorDetId::EM;
-      if (copyno[ich]<5) {sector = 5-copyno[ich] ;
-      }else{sector = 13-copyno[ich] ;}
-      } else if(lvs[ich] == lvCAHS || lvs[ich] == lvCHDS) {
-      // sector number for dead material 1 - 8
-      if (copyno[ich]<5) {sector = 5-copyno[ich] ;
-      }else{sector = 13-copyno[ich] ;}
-      //section = HcalCastorDetId::HAD;
-      } else if(lvs[ich] == lvCAER || lvs[ich] == lvCEDR) {
-      // zmodule number 1-2 for EM section (2 copies)
-      module = copyno[ich];
-      } else if(lvs[ich] == lvCAHR || lvs[ich] == lvCHDR) {
-      //zmodule number 3-14 for HAD section (12 copies)
-      module = copyno[ich] + 2;
-      } else if(lvs[ich] == lvC3EF || lvs[ich] == lvC3HF) {
-      // sector number for sensitive material 1 - 16
-      sector = sector*2  ;
-      } else if(lvs[ich] == lvC4EF || lvs[ich] == lvC4HF) {
-      // sector number for sensitive material 1 - 16
-      sector = sector*2 -1;
-      }
-      */
-      edm::LogInfo("ForwardSim") << "--------- CASTOR Sector =  " << sector;
-
-      edm::LogInfo("ForwardSim") << "CastorNumberingScheme  " << "ich = " << ich
-                                 << " copyno " << copyno[ich] << " name = "
-                                 << lvs[ich]->GetName();
-
+      
 #ifdef debug
       LogDebug("ForwardSim") << "CastorNumberingScheme :: " << "ich = " << ich
 			     << " copyno " << copyno[ich] << " name = "
@@ -270,15 +233,12 @@ void CastorNumberingScheme::detectorLevel(const G4Step* aStep, int& level,
   //Get name and copy numbers
   const G4VTouchable* touch = aStep->GetPreStepPoint()->GetTouchable();
   level = 0;
-  if (!touch) edm::LogInfo("ForwardSim") << "--- NO TOUCHABLE";
   if (touch) level = ((touch->GetHistoryDepth())+1);
-  edm::LogInfo("ForwardSim") << "--------- Detector LEVEL (history depth) ------- " <<  level;
   if (level > 0) {
     for (int ii = 0; ii < level; ii++) {
       int i      = level - ii - 1;
       lvs[ii]    = touch->GetVolume(i)->GetLogicalVolume();
       copyno[ii] = touch->GetReplicaNumber(i);
-      edm::LogInfo("ForwardSim") << "--------- CASTOR Volumes ------- " <<  " LV = " << lvs[ii] << " copyno = " << copyno[ii];
     }
   }
 }

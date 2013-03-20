@@ -14,9 +14,9 @@
 <!--  <Rotation name="CASTFarTilt"  thetaX="100*deg" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg" phiZ="0*deg" /> -->
 
 
-<!--  <Constant name="castTilt" value="0.10856257*deg" /> -->
+<!--  <Constant name="castTilt" value="0.0*deg" /> -->
  <Constant name="castTilt" value="0*deg" />
- <Rotation name="CASTFarTilt"  thetaX="90*deg+[castTilt]" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg+[castTilt]" phiZ="90*deg" />
+ <Rotation name="CASTFarTilt"  thetaX="90*deg+[castTilt]" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg+[castTilt]" phiZ="0*deg" />
  <Rotation name="CASTNearTilt" thetaX="90*deg" phiX="0*deg" thetaY="90*deg" phiY="90*deg" thetaZ="0*deg" phiZ="0*deg" />
 
  <Rotation name="180D" thetaX="90*deg" phiX="180*deg" thetaY="90*deg" phiY="90*deg" thetaZ="180*deg" phiZ="0*deg" />

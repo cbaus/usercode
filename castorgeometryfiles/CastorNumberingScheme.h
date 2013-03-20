@@ -27,7 +27,6 @@
 #include "G4Step.hh"
 #include "G4LogicalVolume.hh"
 #include <boost/cstdint.hpp>
-#include <map>
 
 class CastorNumberingScheme {
 
@@ -64,7 +63,7 @@ private:
   lvp lvCASTFar, lvCASTNear, lvCAST, lvCAES, lvCEDS, lvCAHS, lvCHDS, lvCAER, lvCEDR;
   lvp lvCAHR, lvCHDR, lvC3EF, lvC3HF, lvC4EF, lvC4HF;
   
-  std::map<int,int> copyNoToSector;
+  int copyNoToSector[17];
 
 };
 
